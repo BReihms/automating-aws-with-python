@@ -4,7 +4,7 @@ import mimetypes
 from botocore.exceptions import ClientError
 from pathlib import Path
 
-session = boto3.Session(profile_name='pythonAutomation')
+session = boto3.Session(profile_name='lupinePedagogy')
 s3 = session.resource('s3')
 
 @click.group()
@@ -72,9 +72,10 @@ def setup_bucket(bucket):
 
     return
 
+
+#define upload file function for use with "sync" command
 def upload_file(s3_bucket, path, key):
     content_type = mimetypes.guess_type(key)[0] or 'text/plain'
-    
     s3_bucket.upload_file(
     path,
     key,
