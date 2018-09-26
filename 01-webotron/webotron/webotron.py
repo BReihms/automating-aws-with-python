@@ -1,34 +1,51 @@
-import boto3
-import click
+#!usr/bin/python
+# -*- coding: utf-8 -*-
+"""Webotron: Deploy websites to AWS using Boto3self.
+
+-Configure AWS S3 buckets
+    -Create them
+    -Set them up for static website hosting
+    -Deploy local files to them
+- Configure DNS with AWS Route 53self.
+-Configure a Content Delivery Network and SSL with AWS and Cloudfront
+"""
+
 import mimetypes
-from botocore.exceptions import ClientError
 from pathlib import Path
+import boto3
+from botocore.exceptions import ClientError
+import click
+
 
 session = boto3.Session(profile_name='lupinePedagogy')
 s3 = session.resource('s3')
 
+
 @click.group()
 def cli():
-    "Webotron deploys websites to AWS"
+    """Webotron deploys websites to AWS."""
     pass
+
 
 @cli.command('list-buckets')
 def list_buckets():
-    "List all s3 buckets"
+    """List all s3 buckets."""
     for bucket in s3.buckets.all():
         print(bucket)
+
 
 @cli.command('list-bucket-objects')
 @click.argument('bucket')
 def list_bucket_objects(bucket):
-    "List objects in an S3 bucket, specified by user input provided when executing script"
+    """List objects in an S3 bucket, specified by user input provided when executing script."""
     for object in s3.Bucket(bucket).objects.all():
         print(object)
+
 
 @cli.command('setup-bucket')
 @click.argument('bucket')
 def setup_bucket(bucket):
-    "Create and Configure S3 Bucket specified by user"
+    """Create and Configure S3 Bucket specified by user."""
     s3_bucket = None
     try:
         s3_bucket = s3.create_bucket(
@@ -75,28 +92,32 @@ def setup_bucket(bucket):
 
 #define upload file function for use with "sync" command
 def upload_file(s3_bucket, path, key):
+    """Upload path to s3_bucket @ key."""
     content_type = mimetypes.guess_type(key)[0] or 'text/plain'
     s3_bucket.upload_file(
     path,
     key,
     ExtraArgs={
-        'ContentType': 'text/html'
+        'ContentType': content_type
     }
     )
+
 
 @cli.command('sync')
 @click.argument('pathname', type=click.Path(exists=True))
 @click.argument('bucket')
 def sync(pathname, bucket):
-    "Sync contents of PATHNAME to BUCKET"
+    """Sync contents of PATHNAME to BUCKET."""
     s3_bucket = s3.Bucket(bucket)
 
     root = Path(pathname).expanduser().resolve()
 
     def handle_directory(target):
         for p in target.iterdir():
-            if p.is_dir(): handle_directory(p)
-            if p.is_file(): upload_file(s3_bucket, str(p), str(p.relative_to(root)))
+            if p.is_dir():
+                handle_directory(p)
+            if p.is_file():
+                upload_file(s3_bucket, str(p), str(p.relative_to(root)))
 
     handle_directory(root)
 
